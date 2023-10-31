@@ -15,6 +15,9 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Color;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
 
 @CommandAlias("FableSiege")
 @Description("Main command for FableSiege")
@@ -42,15 +45,23 @@ public class MainCommand extends BaseCommand {
             Location loc = player.getLocation();
             loc.setY(loc.getY() - 1);
 
+            List<Player> attacking = new ArrayList<>();
+            List<Player> defending = new ArrayList<>();
+
+            attacking.add(Bukkit.getPlayer("Tuadang"));
+            defending.add(Bukkit.getPlayer("CheetosChomper"));
+
             BukkitRunnable runnable = new BukkitRunnable() {
-//                int timer = 0;
                 int timer = 2 * 30; // first number and period in runnable.runTaskTimer = 20 always
+                int timeRunnning = 0;
                 String message = "";
                 @Override
                 public void run() {
                     // TODO: Get the radius from the config
                     double radius = 5;
                     Color color = Color.fromRGB(0, 255, 0);
+                    int amountAttacking = 0;
+                    int amountDefending = 0;
 
                     if (timer > 2 * 15) {
                         message = "§2 " + timer / 2 + " seconds left";
@@ -73,18 +84,56 @@ public class MainCommand extends BaseCommand {
                                 .sendTo(Bukkit.getOnlinePlayers());
 
                     }
+
+                    // Add all players in the circle to a list
+                    Map<String, Player> targets = new Hashtable<>();
                     for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
                         if (entity instanceof Player) {
                             Player target = (Player) entity;
 
-                            target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-
-                            timer--;
-                            if (timer == 0) {
-                                cancel();
+                            if (attacking.contains(target)) {
+                                targets.put("attacking", target);
+                            }
+                            else if (defending.contains(target)) {
+                                targets.put("defending", target);
                             }
                         }
                     }
+
+                    // See which players are attacking and which are defending
+                    for (Map.Entry<String, Player> key : targets.entrySet()) {
+                        if (key.getKey().equals("attacking")) {
+                            amountAttacking++;
+                        }
+                        else if (key.getKey().equals("defending")) {
+                            amountDefending++;
+                        }
+                    }
+
+                    // If there are more attackers than defenders, decrease the timer
+                    if (amountAttacking > amountDefending) {
+                        timer--;
+                        if (timer == 0) {
+                            cancel();
+                        }
+                    } else if (amountAttacking < amountDefending){
+                        if (timer < 2 * 30) {
+                            if ((timeRunnning / 2) % 10 == 0) {
+                                timer++;
+                            }
+                        }
+                    } else if (amountAttacking == amountDefending && amountDefending != 0) {
+                        message = "§eContested!";
+                    }
+
+                    for (Player target : attacking) {
+                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    }
+                    for (Player target : defending) {
+                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    }
+
+                    timeRunnning += 2;
                 }
             };
             runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
