@@ -1,0 +1,100 @@
+{
+    "Maps": {
+        "Example1": {
+            "Respawns": 50,
+            "AttackerRespawnPoint": {
+                "X": 20,
+                "Y": 50,
+                "Z": 94,
+                "Yaw": 0,
+                "Pitch": 0,
+                "World": "world"
+            },
+            "DefenderSpawnPoint": {
+                "X": 20,
+                "Y": 50,
+                "Z": 94,
+                "Yaw": 0,
+                "Pitch": 0,
+                "World": "world"
+            },
+            "Objectives": {
+                "Objective1": {
+                    "CaptureTime": 100,
+                    "CapturePoints": {
+                        "Point1": {
+                            "Center": {
+                                "X": 20,
+                                "Y": 50,
+                                "Z": 94,
+                                "Yaw": 0,
+                                "Pitch": 0,
+                                "World": "world"
+                            },
+                            "Radius": 10
+                        },
+                        "Point2": {
+                            "Center": {
+                                "X": 20,
+                                "Y": 50,
+                                "Z": 94,
+                                "Yaw": 0,
+                                "Pitch": 0,
+                                "World": "world"
+                            },
+                            "Radius": 10
+                        }
+                    }
+                }
+            }
+        },
+        "Example2": {
+            "Respawns": 50,
+            "AttackerRespawnPoint": {
+                "X": 20,
+                "Y": 50,
+                "Z": 94,
+                "Yaw": 0,
+                "Pitch": 0,
+                "World": "world2"
+            },
+            "DefenderSpawnPoint": {
+                "X": 20,
+                "Y": 50,
+                "Z": 94,
+                "Yaw": 0,
+                "Pitch": 0,
+                "World": "world2"
+            },
+            "Objectives": {
+                "Objective1": {
+                    "CaptureTime": 100,
+                    "CapturePoints": {
+                        "Point1": {
+                            "Center": {
+                                "X": 20,
+                                "Y": 50,
+                                "Z": 94,
+                                "Yaw": 0,
+                                "Pitch": 0,
+                                "World": "world2"
+                            },
+                            "Radius": 10
+                        },
+                        "Point2": {
+                            "Center": {
+                                "X": 20,
+                                "Y": 50,
+                                "Z": 94,
+                                "Yaw": 0,
+                                "Pitch": 0,
+                                "World": "world2"
+                            },
+                            "Radius": 10
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
