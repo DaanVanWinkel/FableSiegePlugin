@@ -4,6 +4,8 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import com.fable.fablesiegeplugin.Main;
+import com.fable.fablesiegeplugin.config.DataManager;
+import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
 import com.fable.fablesiegeplugin.utils.GetNearbyLivingEntities;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import net.md_5.bungee.api.ChatMessageType;
@@ -15,7 +17,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Color;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -24,6 +25,7 @@ import java.util.*;
 public class MainCommand extends BaseCommand {
 
     final ParticleNativeAPI particleApi = Main.getInstance().getParticleAPI();
+    final DataManager dataManager = Main.getInstance().getDataManager();
 
     @HelpCommand
     @Private
@@ -32,6 +34,7 @@ public class MainCommand extends BaseCommand {
     @Subcommand("load")
     @CommandPermission("fablesiege.load")
     @Description("Load a preset")
+    @CommandCompletion("@maps")
     // TODO: Make it load a preset from the config
     // TODO: Make it work
     public void load(CommandSender sender, String[] args) {
@@ -42,14 +45,25 @@ public class MainCommand extends BaseCommand {
     public void testCircle(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            Location loc = player.getLocation();
-            loc.setY(loc.getY() - 1);
+//            String objectives = dataManager.getConfig().getMap("Sieges.Example1.Objectives.Gate").toString();
+            String[] team1 = dataManager.getConfig().getStringList("Teams.Team1.players").toArray(new String[0]);
+            String[] team2 = dataManager.getConfig().getStringList("Teams.Team2.players").toArray(new String[0]);
+
+            List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives.Gate.CapturePoints"));
+
+//            Location loc = player.getLocation();
+//            loc.setY(loc.getY() - 1);
 
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
 
-            attacking.add(Bukkit.getPlayer("Tuadang"));
-            defending.add(Bukkit.getPlayer("CheetosChomper"));
+            for (String name : team1) {
+                 attacking.add(Bukkit.getPlayer(name));
+            }
+
+            for (String name : team2) {
+                 defending.add(Bukkit.getPlayer(name));
+            }
 
             BukkitRunnable runnable = new BukkitRunnable() {
                 int timer = 2 * 30; // first number and period in runnable.runTaskTimer = 20 always
@@ -62,9 +76,10 @@ public class MainCommand extends BaseCommand {
                     Color color = Color.fromRGB(0, 255, 0);
                     int amountAttacking = 0;
                     int amountDefending = 0;
+                    Map<String, Player> targets = new Hashtable<>();
 
                     if (timer > 2 * 15) {
-                        message = "§2 " + timer / 2 + " seconds left";
+                        message = "§l§2" + timer / 2 + " seconds left";
                     }
                     else if (timer > 2 * 5) {
                         message = "§6 " + timer / 2 + " seconds left";
@@ -75,27 +90,32 @@ public class MainCommand extends BaseCommand {
                         color = Color.fromRGB(255, 0, 0);
                     }
 
-                    for (double t = 0; t <= 2*Math.PI*radius; t += 0.05) {
-                        double x = (radius * Math.cos(t)) + loc.getX();
-                        double z = (loc.getZ() + radius * Math.sin(t));
-                        Location particle = new Location(player.getWorld(), x, loc.getY() + 1, z);
-                        particleApi.LIST_1_8.REDSTONE
-                                .packetColored(true, particle, color)
-                                .sendTo(Bukkit.getOnlinePlayers());
 
-                    }
+                    // For each capture point, draw a circle around it and count the amount of players per team in the circle
+                    for (String point: capturePoints) {
+                        Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.X"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Y"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Z"));
 
-                    // Add all players in the circle to a list
-                    Map<String, Player> targets = new Hashtable<>();
-                    for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
-                        if (entity instanceof Player) {
-                            Player target = (Player) entity;
+                        player.sendMessage(String.valueOf(loc));
 
-                            if (attacking.contains(target)) {
-                                targets.put("attacking", target);
-                            }
-                            else if (defending.contains(target)) {
-                                targets.put("defending", target);
+                        for (double t = 0; t <= 2*Math.PI*radius; t += 0.05) {
+                            double x = (radius * Math.cos(t)) + loc.getX();
+                            double z = (loc.getZ() + radius * Math.sin(t));
+                            Location particle = new Location(player.getWorld(), x, loc.getY() + 1, z);
+                            particleApi.LIST_1_8.REDSTONE
+                                    .packetColored(true, particle, color)
+                                    .sendTo(Bukkit.getOnlinePlayers());
+                        }
+
+                        for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
+                            if (entity instanceof Player) {
+                                Player target = (Player) entity;
+
+                                if (attacking.contains(target)) {
+                                    targets.put("attacking", target);
+                                }
+                                else if (defending.contains(target)) {
+                                    targets.put("defending", target);
+                                }
                             }
                         }
                     }
@@ -127,10 +147,14 @@ public class MainCommand extends BaseCommand {
                     }
 
                     for (Player target : attacking) {
-                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                        if (target != null) {
+                            target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                        }
                     }
                     for (Player target : defending) {
-                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                        if (target != null) {
+                            target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                        }
                     }
 
                     timeRunnning += 2;
@@ -139,4 +163,11 @@ public class MainCommand extends BaseCommand {
             runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
         }
     }
+
+
+//    @Subcommand("test")
+//    @
+
+
+
 }

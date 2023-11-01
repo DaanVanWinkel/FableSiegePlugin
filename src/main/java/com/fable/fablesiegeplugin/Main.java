@@ -11,14 +11,15 @@ import lombok.Getter;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Collection;
+import java.util.*;
+import java.util.function.Supplier;
 
 public final class Main extends JavaPlugin {
 
     @Getter
     private static Main instance;
     @Getter
-    DataManager dataManager;
+    private DataManager dataManager;
     @Getter
     private PaperCommandManager manager;
     @Getter
@@ -56,7 +57,11 @@ public final class Main extends JavaPlugin {
         //manager.registerCommand(new RoleplayCommand());
         manager.registerCommand(new MainCommand());
 
-        manager.getCommandCompletions().registerCompletion("maps", c -> (Collection<String>) dataManager.getConfig().getMap("Maps").keySet());
+        manager.getCommandCompletions().registerCompletion("maps", c -> {
+            Set<String> keySet = (Set<String>) dataManager.getConfig().getMap("Sieges").keySet();
+            ArrayList<String> listOfKeys = new ArrayList<>(keySet);
+            return listOfKeys;
+        });
 
         manager.setDefaultExceptionHandler((command, registeredCommand, sender, args, t) -> {
             getLogger().warning("Error occurred while executing command " + command.getName());
