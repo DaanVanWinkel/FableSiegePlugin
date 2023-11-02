@@ -5,6 +5,7 @@ import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import com.fable.fablesiegeplugin.Main;
 import com.fable.fablesiegeplugin.config.DataManager;
+import com.fable.fablesiegeplugin.utils.DrawCircle;
 import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
 import com.fable.fablesiegeplugin.utils.GetNearbyLivingEntities;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
@@ -51,9 +52,6 @@ public class MainCommand extends BaseCommand {
 
             List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives.Gate.CapturePoints"));
 
-//            Location loc = player.getLocation();
-//            loc.setY(loc.getY() - 1);
-
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
 
@@ -95,16 +93,7 @@ public class MainCommand extends BaseCommand {
                     for (String point: capturePoints) {
                         Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.X"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Y"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Z"));
 
-                        player.sendMessage(String.valueOf(loc));
-
-                        for (double t = 0; t <= 2*Math.PI*radius; t += 0.05) {
-                            double x = (radius * Math.cos(t)) + loc.getX();
-                            double z = (loc.getZ() + radius * Math.sin(t));
-                            Location particle = new Location(player.getWorld(), x, loc.getY() + 1, z);
-                            particleApi.LIST_1_8.REDSTONE
-                                    .packetColored(true, particle, color)
-                                    .sendTo(Bukkit.getOnlinePlayers());
-                        }
+                        DrawCircle.drawCircle(radius, loc, color, player, particleApi);
 
                         for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
                             if (entity instanceof Player) {
