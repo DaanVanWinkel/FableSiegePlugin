@@ -28,6 +28,8 @@ public class MainCommand extends BaseCommand {
 
     final ParticleNativeAPI particleApi = Main.getInstance().getParticleAPI();
     final DataManager dataManager = Main.getInstance().getDataManager();
+    int counter = 0;
+    String map = "";
 
     @HelpCommand
     @Private
@@ -38,15 +40,19 @@ public class MainCommand extends BaseCommand {
     @Description("Load a preset")
     @CommandCompletion("@maps")
     // TODO: Make it load a preset from the config
-    // TODO: Make it work
     public void load(CommandSender sender, String[] args) {
         sender.sendMessage("Loading preset...");
     }
 
     @Subcommand("testCircle")
+    @CommandCompletion("@maps")
     public void testCircle(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
+            player.sendMessage(args);
+            map = args[0];
+
+            // TODO: Change how we get what player what team. Ask Venturo how I wanna do
             String[] team1 = dataManager.getConfig().getStringList("Teams.Team1.players").toArray(new String[0]);
             String[] team2 = dataManager.getConfig().getStringList("Teams.Team2.players").toArray(new String[0]);
 
@@ -61,14 +67,15 @@ public class MainCommand extends BaseCommand {
                  defending.add(Bukkit.getPlayer(name));
             }
 
-            objectiveDoingShit(player, attacking, defending);
+            startObjectives(player, map, attacking, defending);
         }
     }
 
-    int counter = 0;
-
-    public void objectiveDoingShit(Player player, List<Player> attacking, List<Player> defending) {
-        List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives"));
+    /////////////
+    // Methods //
+    /////////////
+    public void startObjectives(Player player, String map, List<Player> attacking, List<Player> defending) {
+        List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
         List<String> objectiveNames = new ArrayList<>();
 
         objectiveNames.add(objectives.get(objectives.size() - 1));
@@ -83,7 +90,7 @@ public class MainCommand extends BaseCommand {
 
         String objective = objectiveNames.get(counter);
 
-        List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives." + objective + ".CapturePoints"));
+        List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives." + objective + ".CapturePoints"));
 
         BukkitRunnable runnable = new BukkitRunnable() {
             int timer = 2 * 10; // first number and period in runnable.runTaskTimer = 20 always
@@ -92,7 +99,6 @@ public class MainCommand extends BaseCommand {
 
             @Override
             public void run() {
-                // TODO: Get the radius from the config
                 Color color = Color.fromRGB(0, 255, 0);
 
                 if (timer > 2 * 15) {
@@ -108,13 +114,13 @@ public class MainCommand extends BaseCommand {
 
                 // For each capture point, draw a circle around it and count the amount of players per team in the circle
                 for (String point : capturePoints) {
-                    Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.X"),
-                            dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.Y"),
-                            dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.Z"));
+                    Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Center.X"),
+                            dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Center.Y"),
+                            dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Center.Z"));
                     int amountAttacking = 0;
                     int amountDefending = 0;
                     Map<String, Player> targets = new Hashtable<>();
-                    double radius = dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Radius");
+                    double radius = dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Radius");
 
                     DrawCircle.drawCircle(radius, loc, color, player, particleApi);
 
@@ -143,7 +149,7 @@ public class MainCommand extends BaseCommand {
                         if (timer == 0) {
                             WinCelebration.winCelebration(attacking, defending, objective, loc);
                             counter++;
-                            objectiveDoingShit(player, attacking, defending);
+                            startObjectives(player, map, attacking, defending);
                             cancel();
                         }
                     } else if (amountAttacking < amountDefending) {
