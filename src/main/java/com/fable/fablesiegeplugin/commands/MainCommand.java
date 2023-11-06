@@ -50,8 +50,6 @@ public class MainCommand extends BaseCommand {
             String[] team1 = dataManager.getConfig().getStringList("Teams.Team1.players").toArray(new String[0]);
             String[] team2 = dataManager.getConfig().getStringList("Teams.Team2.players").toArray(new String[0]);
 
-
-
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
 
@@ -64,11 +62,6 @@ public class MainCommand extends BaseCommand {
             }
 
             objectiveDoingShit(player, attacking, defending);
-
-            // Loop through each objective
-//            for (String objective : objectives) {
-//
-//            }
         }
     }
 
@@ -76,26 +69,30 @@ public class MainCommand extends BaseCommand {
 
     public void objectiveDoingShit(Player player, List<Player> attacking, List<Player> defending) {
         List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives"));
-        Collections.reverse(objectives);
-        if (counter > objectives.size() - 1) {
+        List<String> objectiveNames = new ArrayList<>();
+
+        objectiveNames.add(objectives.get(objectives.size() - 1));
+        for (int i = 0; i + 1 < objectives.size(); i++) {
+            objectiveNames.add(objectives.get(i));
+        }
+
+        if (counter > objectiveNames.size() - 1) {
             counter = 0;
             return;
         }
 
-        String objective = objectives.get(counter);
-        player.sendMessage(objective);
+        String objective = objectiveNames.get(counter);
 
         List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives." + objective + ".CapturePoints"));
 
         BukkitRunnable runnable = new BukkitRunnable() {
-            int timer = 2 * 30; // first number and period in runnable.runTaskTimer = 20 always
+            int timer = 2 * 10; // first number and period in runnable.runTaskTimer = 20 always
             int timeRunnning = 0;
             String message = "";
 
             @Override
             public void run() {
                 // TODO: Get the radius from the config
-                double radius = 5;
                 Color color = Color.fromRGB(0, 255, 0);
 
                 if (timer > 2 * 15) {
@@ -117,6 +114,7 @@ public class MainCommand extends BaseCommand {
                     int amountAttacking = 0;
                     int amountDefending = 0;
                     Map<String, Player> targets = new Hashtable<>();
+                    double radius = dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Radius");
 
                     DrawCircle.drawCircle(radius, loc, color, player, particleApi);
 
