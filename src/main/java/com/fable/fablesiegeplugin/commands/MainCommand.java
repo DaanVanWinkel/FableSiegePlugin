@@ -8,6 +8,7 @@ import com.fable.fablesiegeplugin.config.DataManager;
 import com.fable.fablesiegeplugin.utils.DrawCircle;
 import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
 import com.fable.fablesiegeplugin.utils.GetNearbyLivingEntities;
+import com.fable.fablesiegeplugin.utils.WinCelebration;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -46,11 +47,10 @@ public class MainCommand extends BaseCommand {
     public void testCircle(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
-//            String objectives = dataManager.getConfig().getMap("Sieges.Example1.Objectives.Gate").toString();
             String[] team1 = dataManager.getConfig().getStringList("Teams.Team1.players").toArray(new String[0]);
             String[] team2 = dataManager.getConfig().getStringList("Teams.Team2.players").toArray(new String[0]);
 
-            List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives.Gate.CapturePoints"));
+
 
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
@@ -63,69 +63,92 @@ public class MainCommand extends BaseCommand {
                  defending.add(Bukkit.getPlayer(name));
             }
 
-            BukkitRunnable runnable = new BukkitRunnable() {
-                int timer = 2 * 30; // first number and period in runnable.runTaskTimer = 20 always
-                int timeRunnning = 0;
-                String message = "";
-                @Override
-                public void run() {
-                    // TODO: Get the radius from the config
-                    double radius = 5;
-                    Color color = Color.fromRGB(0, 255, 0);
+            objectiveDoingShit(player, attacking, defending);
+
+            // Loop through each objective
+//            for (String objective : objectives) {
+//
+//            }
+        }
+    }
+
+    int counter = 0;
+
+    public void objectiveDoingShit(Player player, List<Player> attacking, List<Player> defending) {
+        List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives"));
+        Collections.reverse(objectives);
+        if (counter > objectives.size() - 1) {
+            counter = 0;
+            return;
+        }
+
+        String objective = objectives.get(counter);
+        player.sendMessage(objective);
+
+        List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges.Example1.Objectives." + objective + ".CapturePoints"));
+
+        BukkitRunnable runnable = new BukkitRunnable() {
+            int timer = 2 * 30; // first number and period in runnable.runTaskTimer = 20 always
+            int timeRunnning = 0;
+            String message = "";
+
+            @Override
+            public void run() {
+                // TODO: Get the radius from the config
+                double radius = 5;
+                Color color = Color.fromRGB(0, 255, 0);
+
+                if (timer > 2 * 15) {
+                    message = "§l§2" + timer / 2 + " seconds left";
+                } else if (timer > 2 * 5) {
+                    message = "§6 " + timer / 2 + " seconds left";
+                    color = Color.fromRGB(255, 165, 0);
+                } else {
+                    message = "§4 " + timer / 2 + " seconds left";
+                    color = Color.fromRGB(255, 0, 0);
+                }
+
+
+                // For each capture point, draw a circle around it and count the amount of players per team in the circle
+                for (String point : capturePoints) {
+                    Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.X"),
+                            dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.Y"),
+                            dataManager.getConfig().getDouble("Sieges.Example1.Objectives." + objective + ".CapturePoints." + point + ".Center.Z"));
                     int amountAttacking = 0;
                     int amountDefending = 0;
                     Map<String, Player> targets = new Hashtable<>();
 
-                    if (timer > 2 * 15) {
-                        message = "§l§2" + timer / 2 + " seconds left";
-                    }
-                    else if (timer > 2 * 5) {
-                        message = "§6 " + timer / 2 + " seconds left";
-                        color = Color.fromRGB(255, 165, 0);
-                    }
-                    else {
-                        message = "§4 " + timer / 2 + " seconds left";
-                        color = Color.fromRGB(255, 0, 0);
-                    }
+                    DrawCircle.drawCircle(radius, loc, color, player, particleApi);
 
+                    for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
+                        if (entity instanceof Player) {
+                            Player target = (Player) entity;
 
-                    // For each capture point, draw a circle around it and count the amount of players per team in the circle
-                    for (String point: capturePoints) {
-                        Location loc = new Location(player.getWorld(), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.X"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Y"), dataManager.getConfig().getDouble("Sieges.Example1.Objectives.Gate.CapturePoints." + point + ".Center.Z"));
-
-                        DrawCircle.drawCircle(radius, loc, color, player, particleApi);
-
-                        for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
-                            if (entity instanceof Player) {
-                                Player target = (Player) entity;
-
-                                if (attacking.contains(target)) {
-                                    targets.put("attacking", target);
-                                }
-                                else if (defending.contains(target)) {
-                                    targets.put("defending", target);
-                                }
+                            if (attacking.contains(target)) {
+                                targets.put("attacking", target);
+                            } else if (defending.contains(target)) {
+                                targets.put("defending", target);
                             }
                         }
                     }
 
-                    // See which players are attacking and which are defending
                     for (Map.Entry<String, Player> key : targets.entrySet()) {
                         if (key.getKey().equals("attacking")) {
                             amountAttacking++;
-                        }
-                        else if (key.getKey().equals("defending")) {
+                        } else if (key.getKey().equals("defending")) {
                             amountDefending++;
                         }
                     }
 
-                    // If there are more attackers than defenders, decrease the timer
                     if (amountAttacking > amountDefending) {
                         timer--;
                         if (timer == 0) {
+                            WinCelebration.winCelebration(attacking, defending, objective, loc);
+                            counter++;
+                            objectiveDoingShit(player, attacking, defending);
                             cancel();
                         }
-                    } else if (amountAttacking < amountDefending){
+                    } else if (amountAttacking < amountDefending) {
                         if (timer < 2 * 30) {
                             if ((timeRunnning / 2) % 10 == 0) {
                                 timer++;
@@ -134,24 +157,25 @@ public class MainCommand extends BaseCommand {
                     } else if (amountAttacking == amountDefending && amountDefending != 0) {
                         message = "§eContested!";
                     }
-
-                    for (Player target : attacking) {
-                        if (target != null) {
-                            target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                        }
-                    }
-                    for (Player target : defending) {
-                        if (target != null) {
-                            target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                        }
-                    }
-
-                    timeRunnning += 2;
                 }
-            };
-            runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
-        }
+
+                for (Player target : attacking) {
+                    if (target != null) {
+                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    }
+                }
+                for (Player target : defending) {
+                    if (target != null) {
+                        target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    }
+                }
+
+                timeRunnning += 2;
+            }
+        };
+        runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
     }
+}
 
 
 //    @Subcommand("test")
@@ -159,4 +183,4 @@ public class MainCommand extends BaseCommand {
 
 
 
-}
+
