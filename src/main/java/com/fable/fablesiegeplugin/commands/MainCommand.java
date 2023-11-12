@@ -35,21 +35,117 @@ public class MainCommand extends BaseCommand {
     @Private
     public void help(CommandSender sender, CommandHelp help) { help.showHelp(); }
 
+    @Subcommand("create")
+    @CommandPermission("fablesiege.edit")
+    @Description("Creates a siege preset")
+    @Syntax("<siegeName>")
+    public void create(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+
+            if (args.length != 1) {
+                player.sendMessage("§cInvalid syntax (separate objectives with a comma no space). Please use /FableSiege create <siegeName> <objectives>");
+                return;
+            }
+
+            if (sieges.contains(args[0])) {
+                player.sendMessage("§cSiege already exists.");
+                return;
+            }
+
+            dataManager.getConfig().set("Sieges." + args[0], "Objectives");
+        }
+    }
+
+    @Subcommand("addObjective")
+    @CommandPermission("fablesiege.edit")
+    @Description("Adds an objective to a given siege")
+    @CommandCompletion("@maps ")
+    @Syntax("<siege> <objective> <captureTime> <objectiveNumber>")
+    public void addObjective(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+            List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[0] + ".Objectives"));
+
+            if (args.length != 4) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege addPoint <siege> <objective> <captureTime> <objectiveNumber>");
+                return;
+            }
+
+            if (!sieges.contains(args[0])) {
+                player.sendMessage("§cInvalid siege.");
+                return;
+            }
+
+            if (objectives.contains(args[1])) {
+                player.sendMessage("§cObjective already exists.");
+                return;
+            }
+
+            if (args[2].matches("[a-zA-Z]+")) {
+                player.sendMessage("§cInvalid capture time. Please use an integer.");
+                return;
+            }
+
+            if (args[3].matches("[a-zA-Z]+")) {
+                player.sendMessage("§cInvalid objective number. Please use an integer.");
+                return;
+            }
+
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".CaptureTimer", args[2]);
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".ObjectiveNr", args[3]);
+        }
+    }
+
+    @Subcommand("addPoint")
+    @CommandPermission("fablesiege.edit")
+    @Description("Adds a point to a given objective in a given siege")
+    @CommandCompletion("@maps ")
+    @Syntax("<siege> <objective> <radius>")
+    public void addPoint(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+            List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[0] + ".Objectives"));
+
+            if (args.length != 3) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege addPoint <siege> <objective> <radius>");
+                return;
+            }
+
+            if (!sieges.contains(args[0]) || !objectives.contains(args[1])) {
+                player.sendMessage("§cInvalid siege or objective. Please use /FableSiege addPoint <siege> <objective> <radius>");
+                return;
+            }
+
+            if (args[2].matches("[a-zA-Z]+")) {
+                player.sendMessage("§cInvalid radius. Please use an integer.");
+                return;
+            }
+
+            List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[0] + ".Objectives." + args[1] + ".CapturePoints"));
+            int radius = Integer.parseInt(args[2]);
+
+
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".CapturePoints.Point" + (capturePoints.size() + 1) + ".Center.X", player.getLocation().getX());
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".CapturePoints.Point" + (capturePoints.size() + 1) + ".Center.Y", player.getLocation().getY() - 1);
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".CapturePoints.Point" + (capturePoints.size() + 1) + ".Center.Z", player.getLocation().getZ());
+            dataManager.getConfig().set("Sieges." + args[0] + ".Objectives." + args[1] + ".CapturePoints.Point" + (capturePoints.size() + 1) + ".Radius", radius);
+        }
+    }
+
+    // TODO: Team management
+    // TODO: Editing sieges
+
     @Subcommand("load")
     @CommandPermission("fablesiege.load")
     @Description("Load a preset")
-    @CommandCompletion("@maps")
-    // TODO: Make it load a preset from the config
+    @CommandCompletion("@maps @teams @teams ")
     public void load(CommandSender sender, String[] args) {
-        sender.sendMessage("Loading preset...");
-    }
-
-    @Subcommand("testCircle")
-    @CommandCompletion("@maps")
-    public void testCircle(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            player.sendMessage(args);
             map = args[0];
 
             // TODO: Change how we get what player what team. Ask Venturo how I wanna do
@@ -60,11 +156,11 @@ public class MainCommand extends BaseCommand {
             List<Player> defending = new ArrayList<>();
 
             for (String name : team1) {
-                 attacking.add(Bukkit.getPlayer(name));
+                attacking.add(Bukkit.getPlayer(name));
             }
 
             for (String name : team2) {
-                 defending.add(Bukkit.getPlayer(name));
+                defending.add(Bukkit.getPlayer(name));
             }
 
             startObjectives(player, map, attacking, defending);
@@ -74,13 +170,17 @@ public class MainCommand extends BaseCommand {
     /////////////
     // Methods //
     /////////////
+
     public void startObjectives(Player player, String map, List<Player> attacking, List<Player> defending) {
         List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
         List<String> objectiveNames = new ArrayList<>();
 
-        objectiveNames.add(objectives.get(objectives.size() - 1));
-        for (int i = 0; i + 1 < objectives.size(); i++) {
-            objectiveNames.add(objectives.get(i));
+        for (int i = 0; i + 1 <= objectives.size(); i++) {
+            for (String objective : objectives) {
+                if (dataManager.getConfig().getInt("Sieges." + map + ".Objectives." + objective + ".ObjectiveNr") == i + 1) {
+                    objectiveNames.add(objective);
+                }
+            }
         }
 
         if (counter > objectiveNames.size() - 1) {
@@ -89,11 +189,11 @@ public class MainCommand extends BaseCommand {
         }
 
         String objective = objectiveNames.get(counter);
-
+        double captureTime = dataManager.getConfig().getInt("Sieges." + map + ".Objectives." + objective + ".CaptureTimer");
         List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives." + objective + ".CapturePoints"));
 
         BukkitRunnable runnable = new BukkitRunnable() {
-            int timer = 2 * 10; // first number and period in runnable.runTaskTimer = 20 always
+            double timer = 2 * captureTime; // first number and period in runnable.runTaskTimer = 20 always
             int timeRunnning = 0;
             String message = "";
 
@@ -101,13 +201,15 @@ public class MainCommand extends BaseCommand {
             public void run() {
                 Color color = Color.fromRGB(0, 255, 0);
 
-                if (timer > 2 * 15) {
-                    message = "§l§2" + timer / 2 + " seconds left";
-                } else if (timer > 2 * 5) {
-                    message = "§6 " + timer / 2 + " seconds left";
+                double timerInPercent = (100 - Math.round((1 - (timer / 2) / captureTime) * 100));
+
+                if (timerInPercent > 50) { // TODO: respawns
+                    message = "§l§c" + objective + " §r- §l§2" + timerInPercent + "% §r- §l§cRespawns: ";
+                } else if (timerInPercent > 20) {
+                    message = "§l§c" + objective + " §r- §l§6 " + timerInPercent + "% §r- §l§cRespawns: ";
                     color = Color.fromRGB(255, 165, 0);
                 } else {
-                    message = "§4 " + timer / 2 + " seconds left";
+                    message = "§l§c" + objective + " §r- §l§4 " + timerInPercent + "% §r- §l§cRespawns: ";
                     color = Color.fromRGB(255, 0, 0);
                 }
 

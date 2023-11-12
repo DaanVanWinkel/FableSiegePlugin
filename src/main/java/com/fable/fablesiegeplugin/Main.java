@@ -5,6 +5,7 @@ import co.aikar.commands.MessageType;
 import co.aikar.commands.PaperCommandManager;
 import com.fable.fablesiegeplugin.commands.MainCommand;
 import com.fable.fablesiegeplugin.config.DataManager;
+import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import com.github.fierioziy.particlenativeapi.core.ParticleNativeCore;
 import lombok.Getter;
@@ -57,11 +58,9 @@ public final class Main extends JavaPlugin {
         //manager.registerCommand(new RoleplayCommand());
         manager.registerCommand(new MainCommand());
 
-        manager.getCommandCompletions().registerCompletion("maps", c -> {
-            Set<String> keySet = (Set<String>) dataManager.getConfig().getMap("Sieges").keySet();
-            ArrayList<String> listOfKeys = new ArrayList<>(keySet);
-            return listOfKeys;
-        });
+        // Register completions
+        manager.getCommandCompletions().registerCompletion("maps", c -> GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges")));
+        manager.getCommandCompletions().registerCompletion("teams", c -> GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams")));
 
         manager.setDefaultExceptionHandler((command, registeredCommand, sender, args, t) -> {
             getLogger().warning("Error occurred while executing command " + command.getName());
