@@ -10,10 +10,12 @@ import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
 import com.fable.fablesiegeplugin.utils.GetNearbyLivingEntities;
 import com.fable.fablesiegeplugin.utils.WinCelebration;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
+import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -26,35 +28,48 @@ import java.util.*;
 @Description("Main command for FableSiege")
 public class MainCommand extends BaseCommand {
 
+    static boolean running = false;
     final ParticleNativeAPI particleApi = Main.getInstance().getParticleAPI();
     final DataManager dataManager = Main.getInstance().getDataManager();
     int counter = 0;
     String map = "";
+    boolean forceStop = false;
+    int respawns = 50;
 
     @HelpCommand
     @Private
     public void help(CommandSender sender, CommandHelp help) { help.showHelp(); }
 
+    //////////////////////////
+    // Management of Sieges //
+    //////////////////////////
     @Subcommand("create")
     @CommandPermission("fablesiege.edit")
     @Description("Creates a siege preset")
-    @Syntax("<siegeName>")
+    @Syntax("<siegeName> <respawns>")
     public void create(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
+            int configRespawns = 50;
             List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
-
-            if (args.length != 1) {
-                player.sendMessage("§cInvalid syntax (separate objectives with a comma no space). Please use /FableSiege create <siegeName> <objectives>");
-                return;
-            }
 
             if (sieges.contains(args[0])) {
                 player.sendMessage("§cSiege already exists.");
                 return;
             }
 
-            dataManager.getConfig().set("Sieges." + args[0], "Objectives");
+            if (args.length == 2) {
+                if (args[1].matches("[a-zA-Z]+")) {
+                    player.sendMessage("§cInvalid amount of respawns. Please use an integer.");
+                    return;
+                } else if (Integer.parseInt(args[1]) == 0) {
+                    player.sendMessage("§cNo amount of respawns given. Defaulting to 50.");
+                } else {
+                    configRespawns = Integer.parseInt(args[1]);
+                }
+            }
+
+            dataManager.getConfig().set("Sieges." + args[0] + ".Respawns: ", configRespawns);
         }
     }
 
@@ -102,7 +117,7 @@ public class MainCommand extends BaseCommand {
     @Subcommand("addPoint")
     @CommandPermission("fablesiege.edit")
     @Description("Adds a point to a given objective in a given siege")
-    @CommandCompletion("@maps ")
+    @CommandCompletion("@maps")
     @Syntax("<siege> <objective> <radius>")
     public void addPoint(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
@@ -136,21 +151,136 @@ public class MainCommand extends BaseCommand {
         }
     }
 
+    @Subcommand("addRespawnPoint")
+    @CommandPermission("fablesiege.edit")
+    @Description("Adds a respawn point for attacking or defending team in a given siege")
+    @CommandCompletion("@maps")
+    public void addRespawnPoint(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+
+            if (args.length != 2) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege addRespawnPoint <siege> <attacking/defending>");
+                return;
+            }
+
+            if (!sieges.contains(args[0])) {
+                player.sendMessage("§cInvalid siege.");
+                return;
+            }
+
+            if (args[1].equals("attacking")) {
+                dataManager.getConfig().set("Sieges." + args[0] + ".AttackingRespawn." + ".X", player.getLocation().getX());
+                dataManager.getConfig().set("Sieges." + args[0] + ".AttackingRespawn." + ".Y", player.getLocation().getY());
+                dataManager.getConfig().set("Sieges." + args[0] + ".AttackingRespawn." + ".Z", player.getLocation().getZ());
+            } else if (args[1].equals("defending")) {
+                dataManager.getConfig().set("Sieges." + args[0] + ".DefendingRespawn." + ".X", player.getLocation().getX());
+                dataManager.getConfig().set("Sieges." + args[0] + ".DefendingRespawn." + ".Y", player.getLocation().getY());
+                dataManager.getConfig().set("Sieges." + args[0] + ".DefendingRespawn." + ".Z", player.getLocation().getZ());
+            } else {
+                player.sendMessage("§cInvalid team. Specify attacking or defending.");
+            }
+        }
+    }
+
+    @Subcommand("remove")
+    @CommandPermission("fablesiege.edit")
+    @Description("Removes a siege preset")
+    @CommandCompletion("@maps")
+    @Syntax("<siege>")
+    public void remove(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+
+            if (args.length != 1) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege remove <siege>");
+                return;
+            }
+
+            if (!sieges.contains(args[0])) {
+                player.sendMessage("§cInvalid siege.");
+                return;
+            }
+
+            dataManager.getConfig().remove("Sieges." + args[0]);
+        }
+    }
+
     // TODO: Team management
     // TODO: Editing sieges
 
+    /////////////////////////
+    // Management of Teams //
+    /////////////////////////
+    // TODO: Test teams
+
+    @Subcommand("createTeam")
+    @CommandPermission("fablesiege.team")
+    @Description("Creates a team")
+    @Syntax("<teamName>")
+    public void createTeam(CommandSender sender, String[] args) {
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            List<String> teams = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+
+            if (args.length != 1) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege createTeam <teamName>");
+                return;
+            }
+
+            if (teams.contains(args[0])) {
+                player.sendMessage("§cTeam already exists.");
+                return;
+            }
+
+            dataManager.getConfig().set("Teams." + args[0], "players");
+        }
+    }
+
+    @Subcommand("addPlayer")
+    @CommandPermission("fablesiege.team")
+    @Description("Adds a player to a team")
+    @CommandCompletion("@teams ")
+    @Syntax("<team> <player>")
+    public void addPlayer(CommandSender sender, String[] args) {
+
+    }
+
+    ////////////////////////
+    // Starting of Sieges //
+    ////////////////////////
+
     @Subcommand("load")
-    @CommandPermission("fablesiege.load")
+    @CommandPermission("fablesiege.start")
     @Description("Load a preset")
     @CommandCompletion("@maps @teams @teams ")
+    @Syntax("<siege> <attackingTeam(s)> <defendingTeam(s)>")
     public void load(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            map = args[0];
+            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+            List<String> teams = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
 
-            // TODO: Change how we get what player what team. Ask Venturo how I wanna do
-            String[] team1 = dataManager.getConfig().getStringList("Teams.Team1.players").toArray(new String[0]);
-            String[] team2 = dataManager.getConfig().getStringList("Teams.Team2.players").toArray(new String[0]);
+            if (args.length != 3) {
+                player.sendMessage("§cInvalid syntax. Please use /FableSiege load <siege> <attackingTeam(s)> <defendingTeam(s)>");
+                return;
+            }
+
+            if (!sieges.contains(args[0])) {
+                player.sendMessage("§cInvalid siege.");
+                return;
+            }
+
+            if (!teams.contains(args[1]) || !teams.contains(args[2])) {
+                player.sendMessage("§cInvalid team(s).");
+                return;
+            }
+
+            map = args[0];
+            String[] team1 = dataManager.getConfig().getStringList("Teams." + args[1] + ".players").toArray(new String[0]);
+            String[] team2 = dataManager.getConfig().getStringList("Teams." + args[2] + ".players").toArray(new String[0]);
 
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
@@ -163,9 +293,16 @@ public class MainCommand extends BaseCommand {
                 defending.add(Bukkit.getPlayer(name));
             }
 
+            forceStop = false;
+            running = true;
             startObjectives(player, map, attacking, defending);
         }
     }
+
+    @Subcommand("stop")
+    @CommandPermission("fablesiege.start")
+    @Description("Stops all sieges")
+    public void stop(CommandSender sender) { forceStop = true; }
 
     /////////////
     // Methods //
@@ -174,6 +311,7 @@ public class MainCommand extends BaseCommand {
     public void startObjectives(Player player, String map, List<Player> attacking, List<Player> defending) {
         List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
         List<String> objectiveNames = new ArrayList<>();
+        running = true;
 
         for (int i = 0; i + 1 <= objectives.size(); i++) {
             for (String objective : objectives) {
@@ -252,6 +390,7 @@ public class MainCommand extends BaseCommand {
                             WinCelebration.winCelebration(attacking, defending, objective, loc);
                             counter++;
                             startObjectives(player, map, attacking, defending);
+                            running = false;
                             cancel();
                         }
                     } else if (amountAttacking < amountDefending) {
@@ -276,16 +415,29 @@ public class MainCommand extends BaseCommand {
                     }
                 }
 
+                if (forceStop) {
+                    running = false;
+                    cancel();
+                }
+
                 timeRunnning += 2;
             }
         };
         runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
     }
+
+    public static boolean isRunning() { return running; }
+
+    public void playerDeath(Player player) {
+        if (respawns == 0) {
+            player.setHealth(0);
+        } else {
+            player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+            respawns--;
+        }
+    }
 }
 
-
-//    @Subcommand("test")
-//    @
 
 
 
