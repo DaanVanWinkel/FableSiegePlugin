@@ -25,6 +25,8 @@ public final class Main extends JavaPlugin {
     private PaperCommandManager manager;
     @Getter
     private ParticleNativeAPI particleApi;
+    @Getter
+    private MainCommand mainCommand;
 
     @Override
     public void onEnable() {
@@ -33,6 +35,7 @@ public final class Main extends JavaPlugin {
         dataManager = new DataManager();
         manager = new PaperCommandManager(this);
         particleApi = ParticleNativeCore.loadAPI(this);
+        mainCommand = new MainCommand();
 
         // This is last shit to run onEnable
         registerCommands();
@@ -56,7 +59,7 @@ public final class Main extends JavaPlugin {
 
         // Register commands
         //manager.registerCommand(new RoleplayCommand());
-        manager.registerCommand(new MainCommand());
+        manager.registerCommand(mainCommand);
 
         // Register completions
         manager.getCommandCompletions().registerCompletion("maps", c -> GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges")));
