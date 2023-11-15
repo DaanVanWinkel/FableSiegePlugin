@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Siege Plugin
 ## Table of contents
 
