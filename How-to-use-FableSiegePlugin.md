@@ -80,10 +80,23 @@ Removes entire objectives including all capturepoints.
 
 **/fs load <siegeName> <attackingTeam(s)> <defendingTeam(s)>**
 You are able to place more then one team inside either the attacking team or the defending team. By serperating them with a ',' like this: Blue,Green,Red. Important to have them against each other. ***NO SPACES***
--   siegename: name of the siege you'd like to start 
+-   siegeName: name of the siege you'd like to start 
 -   attackingTeam(s): name(s) of the teams who should be doing the capturing of the points
 -   defendingTeam(s): name(s) of the teams who should be doing the defending of the points
 
+## Listing existing items
+
+**/fs list sieges**
+Lists all siege names that exist.
+
+**/fs list objectives <siegeName>
+-   siegeName: name of the siege you want to see the objectives of
+
+**/fs list points <siegeName> <objectiveName>
+-   siegeName: name of the siege
+-   objectiveName: name of the objective you want to see the points of
+
+  
 
 
     
