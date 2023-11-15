@@ -27,13 +27,13 @@ Siege presets and team names get suggested but I can't show you all of the objec
 -   objectiveNumber: order in which the objectives have to go (1 - whatever you want)
 
 **/fs create point <siegeName> <objectiveName> <pointName> <radius>**
-Points get created on your player location, doesn't save to world.
+:   Points get created on your player location, doesn't save to world.
 -   siegeName: name of the preset where you want to make the point
 -   objectiveName: name of the objective where you want to make the point
 -   radius: radius of the cirlce
 
 **/fs create respawnpoint <siege> <attacking/defending>**
-Respawnpoint gets created on your player location, doesn't save to world
+:   Respawnpoint gets created on your player location, doesn't save to world
 -   siegeName: name of the preset where you want to make the respawnpoint
 -   attacking/defending: choice of which side you want to create the respawnpoint of
 
@@ -41,11 +41,11 @@ Respawnpoint gets created on your player location, doesn't save to world
 #### General flow
 
 **/fs remove siege <siegeName>**
-Removes entire siege with everything in it. Asks for confirmation.
+:   Removes entire siege with everything in it. Asks for confirmation.
 -   siegeName: name of preset you want to delete
 
 **/fs remove objective <siegeName> <objectiveName>**
-Removes entire objectives including all capturepoints.
+:   Removes entire objectives including all capturepoints.
 -   siegeName: name of preset where you want to delete the objective
 -   objectiveName: name of objective you want to delete
 
@@ -79,7 +79,7 @@ Removes entire objectives including all capturepoints.
 ### Starting a siege
 
 **/fs load <siegeName> <attackingTeam(s)> <defendingTeam(s)>**
-You are able to place more then one team inside either the attacking team or the defending team. By serperating them with a ',' like this: Blue,Green,Red. Important to have them against each other. ***NO SPACES***
+:   You are able to place more then one team inside either the attacking team or the defending team. By serperating them with a ',' like this: Blue,Green,Red. Important to have them against each other. ***NO SPACES***
 -   siegeName: name of the siege you'd like to start 
 -   attackingTeam(s): name(s) of the teams who should be doing the capturing of the points
 -   defendingTeam(s): name(s) of the teams who should be doing the defending of the points
@@ -87,7 +87,7 @@ You are able to place more then one team inside either the attacking team or the
 ## Listing existing items
 
 **/fs list sieges**
-Lists all siege names that exist.
+:   Lists all siege names that exist.
 
 **/fs list objectives <siegeName>**
 -   siegeName: name of the siege you want to see the objectives of
