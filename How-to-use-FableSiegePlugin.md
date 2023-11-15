@@ -89,10 +89,10 @@ You are able to place more then one team inside either the attacking team or the
 **/fs list sieges**
 Lists all siege names that exist.
 
-**/fs list objectives <siegeName>
+**/fs list objectives <siegeName>**
 -   siegeName: name of the siege you want to see the objectives of
 
-**/fs list points <siegeName> <objectiveName>
+**/fs list points <siegeName> <objectiveName>**
 -   siegeName: name of the siege
 -   objectiveName: name of the objective you want to see the points of
 
