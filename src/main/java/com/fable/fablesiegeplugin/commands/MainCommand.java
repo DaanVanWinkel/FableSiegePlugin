@@ -12,6 +12,7 @@ import lombok.Setter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
@@ -27,6 +28,10 @@ public class MainCommand extends BaseCommand {
 
     @Getter
     boolean running = false;
+    @Getter
+    List<Player> attacking = new ArrayList<>();
+    @Getter
+    List<Player> defending = new ArrayList<>();
     @Getter @Setter
     int respawns = 50;
     @Getter @Setter
@@ -38,6 +43,7 @@ public class MainCommand extends BaseCommand {
     boolean forceStop = false;
     String attackingTeamName = "";
     String defendingTeamName = "";
+    static Player player;
 
     @HelpCommand
     @Private
@@ -51,14 +57,14 @@ public class MainCommand extends BaseCommand {
     @CommandPermission("fablesiege.siegemanagement")
     @Description("Creates everything a siege needs to function")
     @CommandCompletion("Siege|Objective|Point|RespawnPoint @maps ")
-    @Syntax("create <Siege|Objective|Point|RespawnPoint> <siege> [further arguments are optional/depend on the first argument]")
+    @Syntax("create <Siege | Objective | Point | RespawnPoint> <siege> [further arguments are optional/depend on the first argument]")
     public void create(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cYou must be a player to use this command.");
             return;
         }
 
-        Player player = (Player) sender;
+        player = (Player) sender;
         List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
@@ -66,7 +72,7 @@ public class MainCommand extends BaseCommand {
             case "SIEGE": // args = {Siege, siegeName, defaultRespawns}
                 int defaultRespawns = 50;
 
-                if (2 <= args.length && args.length <= 3) {
+                if (args.length < 2) {
                     player.sendMessage("§cInvalid syntax. Please use /FableSiege create siege <siegeName> <defaultRespawns>");
                     return;
                 }
@@ -141,12 +147,18 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
+                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
+
+                if (capturePoints.contains(args[3])) {
+                    player.sendMessage("§cCapture point already exists.");
+                    return;
+                }
+
                 if (args[4].matches("[a-zA-Z]+")) {
                     player.sendMessage("§cInvalid radius. Please use an integer.");
                     return;
                 }
 
-                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
                 int radius = Integer.parseInt(args[4]);
 
                 dataManager.getConfig().set("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints." + args[3] + ".Center.X", player.getLocation().getX());
@@ -168,14 +180,21 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                if (args[2].equals("attacking")) {
-                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn." + ".X", player.getLocation().getX());
-                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn." + ".Y", player.getLocation().getY());
-                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn." + ".Z", player.getLocation().getZ());
-                } else if (args[2].equals("defending")) {
-                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn." + ".X", player.getLocation().getX());
-                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn." + ".Y", player.getLocation().getY());
-                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn." + ".Z", player.getLocation().getZ());
+                if (args[2].equalsIgnoreCase("attacking")) {
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.world", player.getLocation().getWorld().getName());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.x", player.getLocation().getX());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.y", player.getLocation().getY());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.z", player.getLocation().getZ());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.yaw", player.getLocation().getYaw());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".AttackingRespawn.pitch", player.getLocation().getPitch());
+
+                } else if (args[2].equalsIgnoreCase("defending")) {
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.world", player.getLocation().getWorld().getName());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.x", player.getLocation().getX());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.y", player.getLocation().getY());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.z", player.getLocation().getZ());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.yaw", player.getLocation().getYaw());
+                    dataManager.getConfig().set("Sieges." + args[1] + ".DefendingRespawn.pitch", player.getLocation().getPitch());
                 } else {
                     player.sendMessage("§cInvalid team. Specify attacking or defending.");
                     return;
@@ -190,14 +209,14 @@ public class MainCommand extends BaseCommand {
     @CommandPermission("fablesiege.siegemanagement")
     @Description("Removes a siege preset, and all data")
     @CommandCompletion("Siege|Objective|Point|RespawnPoint @maps ")
-    @Syntax("remove <Siege|Objective|Point|RespawnPoint> <siege> [further arguments are optional/depend on the first argument]")
+    @Syntax("remove <Siege | Objective | Point | RespawnPoint> <siege> [further arguments are optional/depend on the first argument]")
     public void remove(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cYou must be a player to use this command.");
             return;
         }
 
-        Player player = (Player) sender;
+        player = (Player) sender;
         List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
@@ -310,14 +329,14 @@ public class MainCommand extends BaseCommand {
     @CommandPermission("fablesiege.list")
     @Description("Lists all sieges, objectives, capture points")
     @CommandCompletion("Siege|Objective|Point|RespawnPoint|Teams|Players")
-    @Syntax("list <Siege|Objective|Point|RespawnPoint|Teams|Players> [further arguments are optional/depend on the first argument]")
+    @Syntax("list <Siege | Objective | Point | RespawnPoint | Teams | Players> [further arguments are optional/depend on the first argument]")
     public void list(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cYou must be a player to use this command.");
             return;
         }
 
-        Player player = (Player) sender;
+        player = (Player) sender;
         List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
@@ -474,15 +493,14 @@ public class MainCommand extends BaseCommand {
     /////////////////////////
     // Management of Teams //
     /////////////////////////
-    // TODO: Test teams
 
     @Subcommand("team")
     @CommandPermission("fablesiege.team")
     @Description("Creates a team")
-    @Syntax("<teamName>")
-    @CommandCompletion("CREATE|REMOVE|ADDPLAYER|REMOVEPLAYER @teams")
+    @Syntax("<Create | Remove | AddPlayer | RemovePlayer> <teamName> [further arguments are optional/depend on the first argument]")
+    @CommandCompletion("Create|Remove|AddPlayer|RemovePlayer @teams @players")
     public void team(CommandSender sender, String[] args) {
-        Player player = (Player) sender;
+        player = (Player) sender;
         List<String> teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
         List<String> allTeams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
 
@@ -586,7 +604,7 @@ public class MainCommand extends BaseCommand {
     @Syntax("<siege> <attackingTeam(s)> <defendingTeam(s)>")
     public void load(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
-            Player player = (Player) sender;
+            player = (Player) sender;
             List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
             List<String> teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
 
@@ -612,8 +630,8 @@ public class MainCommand extends BaseCommand {
             attackingTeamName = args[1];
             defendingTeamName = args[2];
 
-            List<Player> attacking = new ArrayList<>();
-            List<Player> defending = new ArrayList<>();
+            attacking = new ArrayList<>();
+            defending = new ArrayList<>();
 
             for (String name : team1) {
                 attacking.add(Bukkit.getPlayer(name));
@@ -627,7 +645,7 @@ public class MainCommand extends BaseCommand {
             defendersWon = false;
             forceStop = false;
             running = true;
-            startObjectives(player, map, attacking, defending);
+            startObjectives(map, attacking, defending);
 
             player.sendMessage("§a" + map + " loaded.");
         }
@@ -642,7 +660,7 @@ public class MainCommand extends BaseCommand {
     // Methods //
     /////////////
 
-    public void startObjectives(Player player, String map, List<Player> attacking, List<Player> defending) {
+    public void startObjectives(String map, List<Player> attacking, List<Player> defending) {
         List<String> objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
         List<String> objectiveNames = new ArrayList<>();
         running = true;
@@ -675,7 +693,7 @@ public class MainCommand extends BaseCommand {
 
                 double timerInPercent = (100 - Math.round((1 - (timer / 2) / captureTime) * 100));
 
-                if (timerInPercent > 50) { // TODO: respawns
+                if (timerInPercent > 50) {
                     message = "§l§c" + objective + " §r- §l§2" + timerInPercent + "% §r- §l§cRespawns: "  + respawns;
                 } else if (timerInPercent > 20) {
                     message = "§l§c" + objective + " §r- §l§6 " + timerInPercent + "% §r- §l§cRespawns: "  + respawns;
@@ -693,7 +711,7 @@ public class MainCommand extends BaseCommand {
                             dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Center.Z"));
                     int amountAttacking = 0;
                     int amountDefending = 0;
-                    Map<String, Player> targets = new Hashtable<>();
+                    Map<Player, String> targets = new Hashtable<>();
                     double radius = dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Radius");
 
                     Utils.drawCircle(radius, loc, color, player, particleApi);
@@ -702,18 +720,22 @@ public class MainCommand extends BaseCommand {
                         if (entity instanceof Player) {
                             Player target = (Player) entity;
 
+                            if (target.getGameMode() == GameMode.SPECTATOR) {
+                                continue;
+                            }
+
                             if (attacking.contains(target)) {
-                                targets.put("attacking", target);
+                                targets.put(target, "attacking");
                             } else if (defending.contains(target)) {
-                                targets.put("defending", target);
+                                targets.put(target, "defending");
                             }
                         }
                     }
 
-                    for (Map.Entry<String, Player> key : targets.entrySet()) {
-                        if (key.getKey().equals("attacking")) {
+                    for (Map.Entry<Player, String> key : targets.entrySet()) {
+                        if (key.getValue().equals("attacking")) {
                             amountAttacking++;
-                        } else if (key.getKey().equals("defending")) {
+                        } else if (key.getValue().equals("defending")) {
                             amountDefending++;
                         }
                     }
@@ -730,7 +752,7 @@ public class MainCommand extends BaseCommand {
 
                             Utils.pointCaptured(attacking, defending, objective, loc);
                             counter++;
-                            startObjectives(player, map, attacking, defending);
+                            startObjectives(map, attacking, defending);
                             running = false;
                             cancel();
                         }
@@ -771,6 +793,15 @@ public class MainCommand extends BaseCommand {
             }
         };
         runnable.runTaskTimer(Main.getInstance(), 0L, 10L);
+    }
+
+    public Location getRespawnPoint(String team) {
+        return new Location(Bukkit.getWorld(dataManager.getConfig().getString("Sieges." + map + "." + team + "Respawn.world")),
+                dataManager.getConfig().getDouble("Sieges." + map + "." + team + "Respawn.x"),
+                dataManager.getConfig().getDouble("Sieges." + map + "." + team + "Respawn.y"),
+                dataManager.getConfig().getDouble("Sieges." + map + "." + team + "Respawn.z"),
+                dataManager.getConfig().getFloat("Sieges." + map + "." + team + "Respawn.yaw"),
+                dataManager.getConfig().getFloat("Sieges." + map + "." + team + "Respawn.pitch"));
     }
 }
 

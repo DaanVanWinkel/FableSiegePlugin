@@ -1,13 +1,14 @@
 package com.fable.fablesiegeplugin.utils;
 
+import com.fable.fablesiegeplugin.Main;
+import com.fable.fablesiegeplugin.commands.MainCommand;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import de.leonhard.storage.shaded.jetbrains.annotations.NotNull;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
-import org.bukkit.Location;
+import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Utils {
+    private static final MainCommand mainCommand = Main.getInstance().getMainCommand();
 
     //////////////////////////////////
     // Draw a circle around a point //
@@ -138,5 +140,27 @@ public class Utils {
                 target.sendTitle("§l§cDefeat!", "§6" + teamWon + " won!", 10, 150, 20);
             }
         }
+    }
+
+    public static void respawnPlayer(Player player, String team, int respawnTime) {
+        player.setGameMode(GameMode.SPECTATOR);
+        BukkitRunnable runnable = new BukkitRunnable() {
+            int counter = respawnTime;
+
+            @Override
+            public void run() {
+                if (counter == 0) {
+                    player.teleport(mainCommand.getRespawnPoint(team));
+                    player.setGameMode(GameMode.SURVIVAL);
+                    cancel();
+                } else {
+                    player.sendTitle("§l§cRespawning in " + counter, "", 0, 15, 5);
+                    counter--;
+                }
+            }
+        };
+        runnable.runTaskTimer(Main.getInstance(), 0L, 20);
+
+        player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
     }
 }

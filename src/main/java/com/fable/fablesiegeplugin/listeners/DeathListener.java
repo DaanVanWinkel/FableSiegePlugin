@@ -4,12 +4,10 @@ import com.fable.fablesiegeplugin.Main;
 import com.fable.fablesiegeplugin.commands.MainCommand;
 import com.fable.fablesiegeplugin.utils.Utils;
 import org.bukkit.GameMode;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class DeathListener implements Listener {
 
@@ -17,6 +15,8 @@ public class DeathListener implements Listener {
 
     @EventHandler
     public void onDeathRespawn(EntityDamageEvent e) {
+        int alive = 0;
+
         if (!mainCommand.isRunning()) {
             return;
         }
@@ -31,32 +31,25 @@ public class DeathListener implements Listener {
             return;
         }
 
-        // TODO: Set gamemode to spectator for 3 seconds and then respawn, show countdown with title
-
-        if (mainCommand.getRespawns() == 0) {
-            mainCommand.setDefendersWon(true);
-        } else {
-            player.setGameMode(GameMode.SPECTATOR);
-            BukkitRunnable runnable = new BukkitRunnable() {
-                int counter = 3;
-                @Override
-                public void run() {
-                    if (counter == 0) {
-                        player.setGameMode(GameMode.SURVIVAL);
-                        cancel();
-                    } else {
-                        player.sendTitle("§l§cRespawning in " + counter, "", 0, 15, 5);
-                        counter--;
+        if (mainCommand.getAttacking().contains(player)) {
+            if (mainCommand.getRespawns() == 0) {
+                for (Player p : mainCommand.getAttacking()) {
+                    if (p.getGameMode() != GameMode.SPECTATOR) {
+                        alive++;
                     }
                 }
-            };
-            runnable.runTaskTimer(Main.getInstance(), 0L, 20);
 
-            player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
-            mainCommand.setRespawns(mainCommand.getRespawns() - 1);
+                if (alive == 0) {
+                    mainCommand.setDefendersWon(true);
+                }
+            } else {
+                Utils.respawnPlayer(player, "Attacking", 3);
+                mainCommand.setRespawns(mainCommand.getRespawns() - 1);
+            }
+        } else {
+            Utils.respawnPlayer(player, "Defending", 3);
         }
 
         e.setCancelled(true);
     }
-
 }
