@@ -5,10 +5,7 @@ import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import com.fable.fablesiegeplugin.Main;
 import com.fable.fablesiegeplugin.config.DataManager;
-import com.fable.fablesiegeplugin.utils.DrawCircle;
-import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
-import com.fable.fablesiegeplugin.utils.GetNearbyLivingEntities;
-import com.fable.fablesiegeplugin.utils.WinCelebration;
+import com.fable.fablesiegeplugin.utils.*;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +13,6 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -25,19 +21,23 @@ import org.bukkit.Color;
 
 import java.util.*;
 
-@CommandAlias("FableSiege fs")
+@CommandAlias("FableSiege|fs|siege")
 @Description("Main command for FableSiege")
 public class MainCommand extends BaseCommand {
 
     @Getter
     boolean running = false;
+    @Getter @Setter
+    int respawns = 50;
+    @Getter @Setter
+    boolean defendersWon = false;
     final ParticleNativeAPI particleApi = Main.getInstance().getParticleAPI();
     final DataManager dataManager = Main.getInstance().getDataManager();
     int counter = 0;
     String map = "";
     boolean forceStop = false;
-    @Getter @Setter
-    int respawns = 50;
+    String attackingTeamName = "";
+    String defendingTeamName = "";
 
     @HelpCommand
     @Private
@@ -59,7 +59,7 @@ public class MainCommand extends BaseCommand {
         }
 
         Player player = (Player) sender;
-        List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+        List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
         switch (args[0].toUpperCase()) {
@@ -85,7 +85,7 @@ public class MainCommand extends BaseCommand {
                     defaultRespawns = Integer.parseInt(args[2]);
                 }
 
-                dataManager.getConfig().set("Sieges." + args[1] + ".Respawns: ", defaultRespawns);
+                dataManager.getConfig().set("Sieges." + args[1] + ".Respawns", defaultRespawns);
                 player.sendMessage("§aPreset " + args[1] + " created.");
                 break;
 
@@ -100,7 +100,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (objectives.contains(args[2])) {
                     player.sendMessage("§cObjective already exists.");
@@ -134,7 +134,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (!objectives.contains(args[2])) {
                     player.sendMessage("§cInvalid objective.");
@@ -146,7 +146,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
+                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
                 int radius = Integer.parseInt(args[4]);
 
                 dataManager.getConfig().set("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints." + args[3] + ".Center.X", player.getLocation().getX());
@@ -198,7 +198,7 @@ public class MainCommand extends BaseCommand {
         }
 
         Player player = (Player) sender;
-        List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+        List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
         switch (args[0].toUpperCase()) {
@@ -237,7 +237,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (!objectives.contains(args[2])) {
                     player.sendMessage("§cInvalid objective.");
@@ -259,14 +259,14 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (!objectives.contains(args[2])) {
                     player.sendMessage("§cInvalid objective.");
                     return;
                 }
 
-                List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
+                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
 
                 if (!capturePoints.contains(args[3])) {
                     player.sendMessage("§cInvalid capture point.");
@@ -309,8 +309,8 @@ public class MainCommand extends BaseCommand {
     @Subcommand("list")
     @CommandPermission("fablesiege.list")
     @Description("Lists all sieges, objectives, capture points")
-    @CommandCompletion("Siege|Objective|Point|RespawnPoint @maps ")
-    @Syntax("list <Siege|Objective|Point|RespawnPoint> [further arguments are optional/depend on the first argument]")
+    @CommandCompletion("Siege|Objective|Point|RespawnPoint|Teams|Players")
+    @Syntax("list <Siege|Objective|Point|RespawnPoint|Teams|Players> [further arguments are optional/depend on the first argument]")
     public void list(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage("§cYou must be a player to use this command.");
@@ -318,7 +318,7 @@ public class MainCommand extends BaseCommand {
         }
 
         Player player = (Player) sender;
-        List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+        List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
         List<String> objectives;
 
         switch (args[0].toUpperCase()) {
@@ -350,7 +350,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (objectives.isEmpty()) {
                     player.sendMessage("§cNo objectives found.");
@@ -374,14 +374,14 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
+                objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives"));
 
                 if (!objectives.contains(args[2])) {
                     player.sendMessage("§cInvalid objective.");
                     return;
                 }
 
-                List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
+                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + args[1] + ".Objectives." + args[2] + ".CapturePoints"));
 
                 if (capturePoints.isEmpty()) {
                     player.sendMessage("§cNo capture points found.");
@@ -423,6 +423,51 @@ public class MainCommand extends BaseCommand {
                     player.sendMessage("§a- Z: " + Math.round(dataManager.getConfig().getDouble("Sieges." + args[1] + ".DefendingRespawn.Z") * 100) / 100.0);
                 }
                 break;
+
+            case "TEAMS": // args = {Team}
+                if (args.length != 1) {
+                    player.sendMessage("§cInvalid syntax. Please use /FableSiege list team");
+                    return;
+                }
+
+                List<String> teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+
+                if (teams.isEmpty()) {
+                    player.sendMessage("§cNo teams found.");
+                    return;
+                }
+
+                player.sendMessage("§aTeams:");
+                for (String team : teams) {
+                    player.sendMessage("§a- " + team);
+                }
+                break;
+
+            case "PLAYERS": // args = {Players, teamName}
+                if (args.length != 2) {
+                    player.sendMessage("§cInvalid syntax. Please use /FableSiege list players <teamName>");
+                    return;
+                }
+
+                teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+
+                if (!teams.contains(args[1])) {
+                    player.sendMessage("§cInvalid team.");
+                    return;
+                }
+
+                List<String> players = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
+
+                if (players.isEmpty()) {
+                    player.sendMessage("§cNo players found.");
+                    return;
+                }
+
+                player.sendMessage("§aPlayers in " + args[1] + ":");
+                for (String playerInTeam : players) {
+                    player.sendMessage("§a- " + playerInTeam);
+                }
+                break;
         }
     }
 
@@ -438,8 +483,8 @@ public class MainCommand extends BaseCommand {
     @CommandCompletion("CREATE|REMOVE|ADDPLAYER|REMOVEPLAYER @teams")
     public void team(CommandSender sender, String[] args) {
         Player player = (Player) sender;
-        List<String> teams = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
-        List<String> allTeams = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+        List<String> teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+        List<String> allTeams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
 
         switch (args[0].toUpperCase()) {
             case "CREATE": // args = {CREATE, teamName}
@@ -453,7 +498,7 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                dataManager.getConfig().set("Teams." + args[1] + ".players", new ArrayList<String>());
+                dataManager.getConfig().set("Teams." + args[1] + ".players.value", "otherwise no map and shit breaks");
                 player.sendMessage("§aTeam " + args[1] + " created.");
                 break;
 
@@ -488,14 +533,14 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                for (String teamName : allTeams) {
-                    if (!GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + teamName)).contains(args[2])) {
-                        player.sendMessage("§c" + args[2] + " is not in " + teamName + ".");
-                        return;
-                    }
-                }
+//                for (String teamName : allTeams) {
+//                    if (!Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + teamName)).contains(args[2])) {
+//                        player.sendMessage("§c" + args[2] + " is already in " + teamName + ".");
+//                        return;
+//                    }
+//                }
 
-                List<String> team = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
+                List<String> team = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
 
                 dataManager.getConfig().set("Teams." + args[1] + ".players." + args[2] + ".id", team.size() + 1);
                 player.sendMessage("§aAdded " + args[2] + " to " + args[1] + ".");
@@ -517,12 +562,12 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                for (String teamName : allTeams) {
-                    if (!GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + teamName)).contains(args[2])) {
-                        player.sendMessage("§c" + args[2] + " is not in " + teamName + ".");
-                        return;
-                    }
-                }
+//                for (String teamName : allTeams) {
+//                    if (!Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + teamName)).contains(args[2])) {
+//                        player.sendMessage("§c" + args[2] + " is not in " + teamName + ".");
+//                        return;
+//                    }
+//                }
 
                 dataManager.getConfig().remove("Teams." + args[1] + ".players." + args[2]);
                 player.sendMessage("§aRemoved " + args[2] + " from " + args[1] + ".");
@@ -542,8 +587,8 @@ public class MainCommand extends BaseCommand {
     public void load(CommandSender sender, String[] args) {
         if (sender instanceof Player) {
             Player player = (Player) sender;
-            List<String> sieges = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
-            List<String> teams = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
+            List<String> sieges = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges"));
+            List<String> teams = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams"));
 
             if (args.length != 3) {
                 player.sendMessage("§cInvalid syntax. Please use /FableSiege load <siege> <attackingTeam(s)> <defendingTeam(s)>");
@@ -561,8 +606,11 @@ public class MainCommand extends BaseCommand {
             }
 
             map = args[0];
-            List<String> team1 = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
-            List<String> team2 = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[2] + ".players"));
+            List<String> team1 = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
+            List<String> team2 = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[2] + ".players"));
+
+            attackingTeamName = args[1];
+            defendingTeamName = args[2];
 
             List<Player> attacking = new ArrayList<>();
             List<Player> defending = new ArrayList<>();
@@ -575,9 +623,13 @@ public class MainCommand extends BaseCommand {
                 defending.add(Bukkit.getPlayer(name));
             }
 
+            respawns = dataManager.getConfig().getInt("Sieges." + map + ".Respawns");
+            defendersWon = false;
             forceStop = false;
             running = true;
             startObjectives(player, map, attacking, defending);
+
+            player.sendMessage("§a" + map + " loaded.");
         }
     }
 
@@ -591,7 +643,7 @@ public class MainCommand extends BaseCommand {
     /////////////
 
     public void startObjectives(Player player, String map, List<Player> attacking, List<Player> defending) {
-        List<String> objectives = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
+        List<String> objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
         List<String> objectiveNames = new ArrayList<>();
         running = true;
 
@@ -610,7 +662,7 @@ public class MainCommand extends BaseCommand {
 
         String objective = objectiveNames.get(counter);
         double captureTime = dataManager.getConfig().getInt("Sieges." + map + ".Objectives." + objective + ".CaptureTimer");
-        List<String> capturePoints = GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives." + objective + ".CapturePoints"));
+        List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives." + objective + ".CapturePoints"));
 
         BukkitRunnable runnable = new BukkitRunnable() {
             double timer = 2 * captureTime; // first number and period in runnable.runTaskTimer = 20 always
@@ -624,12 +676,12 @@ public class MainCommand extends BaseCommand {
                 double timerInPercent = (100 - Math.round((1 - (timer / 2) / captureTime) * 100));
 
                 if (timerInPercent > 50) { // TODO: respawns
-                    message = "§l§c" + objective + " §r- §l§2" + timerInPercent + "% §r- §l§cRespawns: ";
+                    message = "§l§c" + objective + " §r- §l§2" + timerInPercent + "% §r- §l§cRespawns: "  + respawns;
                 } else if (timerInPercent > 20) {
-                    message = "§l§c" + objective + " §r- §l§6 " + timerInPercent + "% §r- §l§cRespawns: ";
+                    message = "§l§c" + objective + " §r- §l§6 " + timerInPercent + "% §r- §l§cRespawns: "  + respawns;
                     color = Color.fromRGB(255, 165, 0);
                 } else {
-                    message = "§l§c" + objective + " §r- §l§4 " + timerInPercent + "% §r- §l§cRespawns: ";
+                    message = "§l§c" + objective + " §r- §l§4 " + timerInPercent + "% §r- §l§cRespawns: "  + respawns;
                     color = Color.fromRGB(255, 0, 0);
                 }
 
@@ -644,9 +696,9 @@ public class MainCommand extends BaseCommand {
                     Map<String, Player> targets = new Hashtable<>();
                     double radius = dataManager.getConfig().getDouble("Sieges." + map + ".Objectives." + objective + ".CapturePoints." + point + ".Radius");
 
-                    DrawCircle.drawCircle(radius, loc, color, player, particleApi);
+                    Utils.drawCircle(radius, loc, color, player, particleApi);
 
-                    for (LivingEntity entity : GetNearbyLivingEntities.getNearbyLivingEntities(player, loc, radius)) {
+                    for (LivingEntity entity : Utils.getNearbyLivingEntities(player, loc, radius)) {
                         if (entity instanceof Player) {
                             Player target = (Player) entity;
 
@@ -669,7 +721,14 @@ public class MainCommand extends BaseCommand {
                     if (amountAttacking > amountDefending) {
                         timer--;
                         if (timer == 0) {
-                            WinCelebration.winCelebration(attacking, defending, objective, loc);
+                            if (objectives.size() - 1 == counter) {
+                                Utils.teamWon(attackingTeamName, attacking, defending);
+                                running = false;
+                                cancel();
+                                return;
+                            }
+
+                            Utils.pointCaptured(attacking, defending, objective, loc);
                             counter++;
                             startObjectives(player, map, attacking, defending);
                             running = false;
@@ -682,7 +741,7 @@ public class MainCommand extends BaseCommand {
                             }
                         }
                     } else if (amountAttacking == amountDefending && amountDefending != 0) {
-                        message = "§eContested!";
+                        message = "§l§c" + objective + " §r- §eContested! §r- §l§cRespawns: "  + respawns;
                     }
                 }
 
@@ -695,6 +754,12 @@ public class MainCommand extends BaseCommand {
                     if (target != null) {
                         target.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
                     }
+                }
+
+                if (defendersWon) {
+                    Utils.teamWon(defendingTeamName, defending, attacking);
+                    running = false;
+                    cancel();
                 }
 
                 if (forceStop) {

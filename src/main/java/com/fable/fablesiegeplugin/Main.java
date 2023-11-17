@@ -5,15 +5,13 @@ import co.aikar.commands.MessageType;
 import co.aikar.commands.PaperCommandManager;
 import com.fable.fablesiegeplugin.commands.MainCommand;
 import com.fable.fablesiegeplugin.config.DataManager;
-import com.fable.fablesiegeplugin.utils.GetListFromMapKeyset;
+import com.fable.fablesiegeplugin.listeners.DeathListener;
+import com.fable.fablesiegeplugin.utils.Utils;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import com.github.fierioziy.particlenativeapi.core.ParticleNativeCore;
 import lombok.Getter;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.*;
-import java.util.function.Supplier;
 
 public final class Main extends JavaPlugin {
 
@@ -38,6 +36,7 @@ public final class Main extends JavaPlugin {
         mainCommand = new MainCommand();
 
         // This is last shit to run onEnable
+        getServer().getPluginManager().registerEvents(new DeathListener(), this);
         registerCommands();
         getLogger().info("Fable Siege Plugin has been enabled!");
     }
@@ -45,7 +44,7 @@ public final class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        getLogger().info("Fable Siege Plugin has been enabled!");
+        getLogger().info("Fable Siege Plugin has been disabled!");
     }
 
     private void registerCommands() {
@@ -62,8 +61,8 @@ public final class Main extends JavaPlugin {
         manager.registerCommand(mainCommand);
 
         // Register completions
-        manager.getCommandCompletions().registerCompletion("maps", c -> GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges")));
-        manager.getCommandCompletions().registerCompletion("teams", c -> GetListFromMapKeyset.getListFromMapKeyset(dataManager.getConfig().getMap("Teams")));
+        manager.getCommandCompletions().registerCompletion("maps", c -> Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges")));
+        manager.getCommandCompletions().registerCompletion("teams", c -> Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams")));
 
         manager.setDefaultExceptionHandler((command, registeredCommand, sender, args, t) -> {
             getLogger().warning("Error occurred while executing command " + command.getName());
