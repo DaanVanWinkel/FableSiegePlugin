@@ -6,6 +6,7 @@ import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import de.leonhard.storage.shaded.jetbrains.annotations.NotNull;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -162,5 +163,14 @@ public class Utils {
         runnable.runTaskTimer(Main.getInstance(), 0L, 20);
 
         player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+    }
+
+    public static boolean checkIfPlayer(CommandSender player) {
+        if (player instanceof Player) {
+            return true;
+        } else {
+            player.sendMessage("§cYou must be a player to use this command.");
+            return false;
+        }
     }
 }
