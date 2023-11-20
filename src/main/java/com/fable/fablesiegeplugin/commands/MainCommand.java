@@ -82,13 +82,17 @@ public class MainCommand extends BaseCommand {
                     return;
                 }
 
-                if (args[2].matches("[a-zA-Z]+")) {
-                    player.sendMessage("§cInvalid amount of respawns. Please use an integer.");
-                    return;
-                } else if (Integer.parseInt(args[2]) == 0) {
+                if (args[2] == null) {
                     player.sendMessage("§cNo amount of respawns given. Defaulting to 50.");
                 } else {
-                    defaultRespawns = Integer.parseInt(args[2]);
+                    if (args[2].matches("[a-zA-Z]+")) {
+                        player.sendMessage("§cInvalid amount of respawns. Please use an integer.");
+                        return;
+                    } else if (Integer.parseInt(args[2]) == 0) {
+                        player.sendMessage("§cNo amount of respawns given. Defaulting to 50.");
+                    } else {
+                        defaultRespawns = Integer.parseInt(args[2]);
+                    }
                 }
 
                 dataManager.getConfig().set("Sieges." + args[1] + ".Respawns", defaultRespawns);
@@ -624,8 +628,44 @@ public class MainCommand extends BaseCommand {
             }
 
             map = args[0];
+            List<String> objectives = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives"));
+
+            if (objectives.isEmpty()) {
+                player.sendMessage("§cNo objectives found for " + map);
+                return;
+            }
+
+            for (String objective : objectives) {
+                List<String> capturePoints = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Sieges." + map + ".Objectives." + objective + ".CapturePoints"));
+
+                if (capturePoints.isEmpty()) {
+                    player.sendMessage("§cNo capture points found for " + objective + " in " + map);
+                    return;
+                }
+            }
+
+            if (dataManager.getConfig().getMap("Sieges." + map + ".AttackingRespawn").isEmpty()) {
+                player.sendMessage("§cNo respawn points found for attacking team in " + map);
+                return;
+            }
+
+            if (dataManager.getConfig().getMap("Sieges." + map + ".DefendingRespawn").isEmpty()) {
+                player.sendMessage("§cNo respawn points found for defending team in " + map);
+                return;
+            }
+
             List<String> team1 = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[1] + ".players"));
             List<String> team2 = Utils.getListFromMapKeyset(dataManager.getConfig().getMap("Teams." + args[2] + ".players"));
+
+            if (team1.isEmpty()) {
+                player.sendMessage("§cNo players found in " + args[1]);
+                return;
+            }
+
+            if (team2.isEmpty()) {
+                player.sendMessage("§cNo players found in " + args[2]);
+                return;
+            }
 
             attackingTeamName = args[1];
             defendingTeamName = args[2];
