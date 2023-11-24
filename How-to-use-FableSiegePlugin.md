@@ -16,45 +16,49 @@ Siege presets and team names get suggested but I can't show you all of the objec
 ### Creating presets
 #### General flow
 
-**/fs create siege <  siegeName > (amountOfRespawns)**
+**/fs siege create < siegeName > (amountOfRespawns)**
 -   siegeName: the name you want to give the preset.
 -   amountOfRespawns: is the amount of respawns the attacking team has, this defaults to 50
 
-**/fs create objective <  siegeName > <  objectiveName > < captureTime > < objectiveNumber >**
+**/fs objective create <  siegeName > <  objectiveName > < captureTime > < objectiveNumber >**
 -   siegeName: name of the preset where you want to make the objective
 -   objectiveName: name of the objective 
 -   captureTime: time for all points in the objective to be captured
 -   objectiveNumber: order in which the objectives have to go (1 - whatever you want)
 
-**/fs create point < siegeName > < objectiveName > < pointName > < radius >**
+**/fs capturepoint create < siegeName > < objectiveName > < pointName > < radius >**
 :   Points get created on your player location, doesn't save to world.
+
 -   siegeName: name of the preset where you want to make the point
 -   objectiveName: name of the objective where you want to make the point
 -   radius: radius of the cirlce
 
-**/fs create respawnpoint < siege > < attacking/defending >**
-:   Respawnpoint gets created on your player location, doesn't save to world
--   siegeName: name of the preset where you want to make the respawnpoint
--   attacking/defending: choice of which side you want to create the respawnpoint of
+**/fs respawnpoint create < siege > < attacking/defending >**
+:   Respawn point gets created on your player location, doesn't save to world
+
+-   siegeName: name of the preset where you want to make the respawn point
+-   attacking/defending: choice of which side you want to create the respawn point of
 
 ### Removing presets
 #### General flow
 
-**/fs remove siege < siegeName >**
+**/fs siege remove < siegeName >**
 :   Removes entire siege with everything in it. Asks for confirmation.
+
 -   siegeName: name of preset you want to delete
 
-**/fs remove objective < siegeName > < objectiveName >**
+**/fs objective remove < siegeName > < objectiveName >**
 :   Removes entire objectives including all capturepoints.
+
 -   siegeName: name of preset where you want to delete the objective
 -   objectiveName: name of objective you want to delete
 
-**/fs remove point < siegeName > < objectiveName > < pointName >**
+**/fs capturepoint remove < siegeName > < objectiveName > < pointName >**
 -   siegeName: name of preset where you want to delete the objective
 -   objectiveName: name of objective where you want to delete the capturepoint
 -   pointName: name of the point you want to delete
 
-**/fs remove respawnpoint < siegeName > < attacking/defending >**
+**/fs respawnpoint remove < siegeName > < attacking/defending >**
 -   siegeName: name of preset where you want to delete the respawnpoint of selected team
 -   attacking/defending: choice of which side you want to delete the respawnpoint of
 
@@ -80,21 +84,22 @@ Siege presets and team names get suggested but I can't show you all of the objec
 
 **/fs load < siegeName > < attackingTeam(s) > < defendingTeam(s) >**
 :   You are able to place more then one team inside either the attacking team or the defending team. By serperating them with a ',' like this: Blue,Green,Red. Important to have them against each other. ***NO SPACES***
+
 -   siegeName: name of the siege you'd like to start 
 -   attackingTeam(s): name(s) of the teams who should be doing the capturing of the points
 -   defendingTeam(s): name(s) of the teams who should be doing the defending of the points
 
 ## Listing existing items
 
-**/fs list sieges**
+**/fs siege list**
 :   Lists all siege names that exist.
 
-**/fs list objectives < siegeName >**
+**/fs objective list < siegeName >**
 -   siegeName: name of the siege you want to see the objectives of
 
-**/fs list points < siegeName > < objectiveName >**
+**/fs capturepoints list < siegeName > < objectiveName >**
 -   siegeName: name of the siege
 -   objectiveName: name of the objective you want to see the points of
 
-**/fs list respawnpoints < siegeName >**
+**/fs respawnpoint list < siegeName >**
 -   siegeName: name of the siege you want to see the respawnpoints of
