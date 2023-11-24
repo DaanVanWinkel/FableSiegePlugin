@@ -6,6 +6,7 @@ import co.aikar.commands.PaperCommandManager;
 import com.fable.fablesiegeplugin.commands.MainCommand;
 import com.fable.fablesiegeplugin.config.DataManager;
 import com.fable.fablesiegeplugin.listeners.DeathListener;
+import com.fable.fablesiegeplugin.listeners.EntityDamageByEntity;
 import com.fable.fablesiegeplugin.utils.Utils;
 import com.github.fierioziy.particlenativeapi.api.ParticleNativeAPI;
 import com.github.fierioziy.particlenativeapi.core.ParticleNativeCore;
@@ -35,8 +36,11 @@ public final class Main extends JavaPlugin {
         particleApi = ParticleNativeCore.loadAPI(this);
         mainCommand = new MainCommand();
 
-        // This is last shit to run onEnable
+        // Register listeners
         getServer().getPluginManager().registerEvents(new DeathListener(), this);
+        getServer().getPluginManager().registerEvents(new EntityDamageByEntity(), this);
+
+        // This is last shit to run onEnable
         registerCommands();
         getLogger().info("Fable Siege Plugin has been enabled!");
     }
